@@ -6,12 +6,14 @@ public class Vehicle {
 	private double lat;
 	private double lng;
 	private int id;
+	private String notification;
 
-	public Vehicle(int id, String type, double lat, double lng) {
+	public Vehicle(int id, String type, double lat, double lng, String notification) {
 		this.type = type;
 		this.lat = lat;
 		this.lng = lng;
 		this.id = id;
+		this.notification = notification;
 	}
 
 	public Vehicle getVehicle() {
@@ -51,5 +53,13 @@ public class Vehicle {
 
 	public void setId(int id) {
 		this.id = id;
+	}
+	
+	public String getNotification(){
+		return this.notification;
+	}
+	
+	public void setNotification(String notification){
+		this.notification = notification;
 	}
 }
