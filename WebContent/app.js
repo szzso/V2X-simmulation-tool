@@ -102,6 +102,7 @@ function onMessage(evt) {
 				lat : lat,
 				lng : lng
 			};
+			var notification = readvehicle[i].notification;
 
 			for (var j = 0; j < vehicle.length; j++) {
 				if (id == vehicle[j].id) {
@@ -129,14 +130,21 @@ function onMessage(evt) {
 					position : myLatLng,
 					map : map,
 					icon : icon,
-					title : "Hello there Kisumu!"
-				})
+					title : "ID: "+ id + " Type: "+ type 
+				});
 				// marker.showInfoWindow();
+				if (notification != ""){
+					var infowindow = new google.maps.InfoWindow({
+					    content: notification
+					  });
+					infowindow.open(map, marker);
+				}
 
 				var v = {
 					id : id,
 					type : type,
-					map : marker
+					map : marker,
+					notification: notification
 				};
 				vehicle.push(v);
 			}
@@ -181,13 +189,21 @@ function initialize() {
 	 
 	// Térkép elhelyezése a HTML kód googleMap id- vel rendelkező elemébe
 	map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
-
-	if (typeof(Number.prototype.toRad) === "undefined") {
-		  Number.prototype.toRad = function() {
-		    return this * Math.PI / 180;
-		  }
-		}
 	
+	var icon = "pictures/rsu.png";
+	var infowindow = new google.maps.InfoWindow({
+	    content: "This is a info window"
+	  });
+
+	
+	var marker = new google.maps.Marker({
+		position : defaultlocation,
+		map : map,
+		icon : icon,
+		title : "This is the center!"
+	})
+	infowindow.open(map, marker);
+
 	var init = {
 		"type" : "initBrowser"
 	};
