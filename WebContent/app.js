@@ -52,8 +52,6 @@ function onMessage(evt) {
 	var readvehicle = data.vehicles;
 	var messagetype = data.type;
 
-	
-	
 	if (messagetype === "delete") {
 		var id = data.id;
 		var index = -1;
@@ -179,19 +177,17 @@ function newEventMessage(icon, id, message){
 	object.appendChild(messageNode);
 	
 	document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
-	
 }
 
 function initialize() {
 	// Egy új térkép létrehozása
 	wsUrl = getRootUri() + "/V2X-Map-WebSocket/map";
 	firstdevice = true;
-	initWebSocket();
+	
 	var initialLocation;
 	if (navigator.geolocation) {
 	     navigator.geolocation.getCurrentPosition(function (position) {
 	         initialLocation = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-	         //map.setCenter(initialLocation);
 	     });
 	     console.log("position: "+ initialLocation);
 	     if (initialLocation === undefined || initialLocation === null) {
@@ -213,9 +209,11 @@ function initialize() {
 	// Térkép elhelyezése a HTML kód googleMap id- vel rendelkező elemébe
 	map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
 	
+	initWebSocket();
+	
 	var icon = "pictures/rsu.png";
 	var infowindow = new google.maps.InfoWindow({
-	    content: "This is a info window"
+	    content: "This is an info window"
 	  });
 
 	

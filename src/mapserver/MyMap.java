@@ -80,7 +80,7 @@ public class MyMap {
 		case "initBrowser":
 
 			browser.add(session);
-			System.out.println("initBrowser:" + browser.size());
+			System.out.println("New browser: " + browser.size());
 
 			JsonArrayBuilder builder = Json.createArrayBuilder();
 			for (int i = 0; i < vehicle.size(); i++) {
@@ -96,17 +96,9 @@ public class MyMap {
 
 		case "initDevice":
 			try {
-				System.out.println("New Device:");
 				int id = input.getInt("id");
-				System.out.println(id);
 				device.put(session, id);
-				System.out.println("initDevice:" + device.size());
-				Iterator it = device.entrySet().iterator();
-				System.out.println("Values:");
-				while(it.hasNext()) {
-					Map.Entry pair = (Map.Entry)it.next();
-					System.out.println(pair.getValue());
-				}
+				System.out.println("New Device: " + device.size());
 			} catch (NullPointerException e) {
 				System.out.println("Missing id from device initialization");
 			}
