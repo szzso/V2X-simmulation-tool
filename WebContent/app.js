@@ -138,6 +138,7 @@ function onMessage(evt) {
 					    content: notification
 					  });
 					infowindow.open(map, marker);
+					newEventMessage(icon, id, notification);
 				}
 
 				var v = {
@@ -157,6 +158,28 @@ function doSend() {
 		initWebSocket();
 	else if (message !== "")
 		websocket.send(message);
+}
+
+function newEventMessage(icon, id, message){
+	var txt = document.createTextNode(message);
+	var messageNode = document.createElement('div');
+	messageNode.setAttribute('class', 'message');
+	messageNode.appendChild(txt);
+	
+	var imageNode = document.createElement("img");
+	imageNode.setAttribute('src', icon);
+	imageNode.setAttribute('alt', "ID: "+ id);
+	imageNode.setAttribute('title', "ID: "+ id);
+	imageNode.setAttribute('class', 'icon');
+	
+	var object = document.createElement('div');
+	object.setAttribute('class', 'object');
+	
+	object.appendChild(imageNode);
+	object.appendChild(messageNode);
+	
+	document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
+	
 }
 
 function initialize() {
@@ -203,7 +226,9 @@ function initialize() {
 		title : "This is the center!"
 	})
 	infowindow.open(map, marker);
-
+	
+	newEventMessage(icon, 22564, "This message comes from JS function");
+	
 	var init = {
 		"type" : "initBrowser"
 	};

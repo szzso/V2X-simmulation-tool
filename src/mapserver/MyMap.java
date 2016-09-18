@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ import javax.websocket.server.ServerEndpoint;
 public class MyMap {
 
 	private static List<Session> browser = new ArrayList<Session>();
-	Map<Session, Integer> device = new HashMap<Session, Integer>();
+	private static Map<Session, Integer> device = new HashMap<Session, Integer>();
 
 	private static List<Vehicle> vehicle = new ArrayList<Vehicle>();
 
@@ -95,10 +96,17 @@ public class MyMap {
 
 		case "initDevice":
 			try {
+				System.out.println("New Device:");
 				int id = input.getInt("id");
 				System.out.println(id);
 				device.put(session, id);
 				System.out.println("initDevice:" + device.size());
+				Iterator it = device.entrySet().iterator();
+				System.out.println("Values:");
+				while(it.hasNext()) {
+					Map.Entry pair = (Map.Entry)it.next();
+					System.out.println(pair.getValue());
+				}
 			} catch (NullPointerException e) {
 				System.out.println("Missing id from device initialization");
 			}
