@@ -121,6 +121,9 @@ function onMessage(evt) {
 			    case "trafficlight":
 			    	icon = "pictures/trafficlight.png";
 			    	break;
+			    case "ambulance":
+			    	icon = "pictures/ambulance.png";
+			    	break;
 			    default:
 			    	icon = "pictures/default.png";
 				} 
@@ -131,7 +134,7 @@ function onMessage(evt) {
 					title : "ID: "+ id + " Type: "+ type 
 				});
 				// marker.showInfoWindow();
-				if (notification != ""){
+				if (notification != "" && notification!= null){
 					var infowindow = new google.maps.InfoWindow({
 					    content: notification
 					  });
@@ -162,6 +165,10 @@ function newEventMessage(icon, id, message){
 	var txt = document.createTextNode(message);
 	var messageNode = document.createElement('div');
 	messageNode.setAttribute('class', 'message');
+	
+	var messagetype = document.createElement('div');
+
+	//var messagetypep.setAttribute('b', 'Type');
 	messageNode.appendChild(txt);
 	
 	var imageNode = document.createElement("img");
