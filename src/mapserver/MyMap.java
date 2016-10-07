@@ -148,7 +148,10 @@ public class MyMap {
 					break;
 				}
 				
-			
+		case "newMessage":
+			System.out.println(input.toString());
+			SendtoBrowser(session, input.toString());
+			break;
 		default:
 			break;
 		}

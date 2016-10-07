@@ -51,6 +51,7 @@ function onMessage(evt) {
 	data = JSON.parse(evt.data);
 	var readvehicle = data.vehicles;
 	var messagetype = data.type;
+	
 
 	if (messagetype === "delete") {
 		var id = data.id;
@@ -69,12 +70,27 @@ function onMessage(evt) {
 			}
 		}
 	} else {
+		
+		if(messagetype == "newMessage"){
+			for ( var i in readvehicle) {
+				var jsonmessage = readvehicle[i].message;
+				console.log("message : "+ jsonmessage);
+				var id = readvehicle[i].id;
+				var type = readvehicle[i].type;
+				if(id != null && id != "" && jsonmessage != null)
+					newEventMessage(getVehicleIcon(type), id, jsonmessage)
+			}
+		}
+	
+		else{
+			
+		
 		if(firstdevice && readvehicle.length >0){
 			
 			firstdevice = false;
 			var center = map.getCenter();
 		    var R = 6371e3; // metres
-		    //console.log("center : "+ center);
+		    // console.log("center : "+ center);
 		    var lat1 = toRadian(readvehicle[0].lat);
 		    var lat2 = toRadian(center.lat());
 		    var deltalat = toRadian(center.lat()-readvehicle[0].lat);
@@ -92,10 +108,10 @@ function onMessage(evt) {
 		}
 		for ( var i in readvehicle) {
 			var found = false;
-			var id = readvehicle[i].id
-			var type = readvehicle[i].type
-			var lat = readvehicle[i].lat
-			var lng = readvehicle[i].lng
+			var id = readvehicle[i].id;
+			var type = readvehicle[i].type;
+			var lat = readvehicle[i].lat;
+			var lng = readvehicle[i].lng;
 			var myLatLng = {
 				lat : lat,
 				lng : lng
@@ -109,24 +125,8 @@ function onMessage(evt) {
 				}
 			}
 			if (!found) {
-				var icon;
-				switch(type) {
-			    case "car":
-			    	icon= "pictures/car"+ carindex +".png"
-			        carindex= (carindex+1)%10;
-			        break;
-			    case "rsu":
-			        icon = "pictures/rsu.png";
-			        break;
-			    case "trafficlight":
-			    	icon = "pictures/trafficlight.png";
-			    	break;
-			    case "ambulance":
-			    	icon = "pictures/ambulance.png";
-			    	break;
-			    default:
-			    	icon = "pictures/default.png";
-				} 
+				var icon= getVehicleIcon(type);
+
 				var marker = new google.maps.Marker({
 					position : myLatLng,
 					map : map,
@@ -134,12 +134,12 @@ function onMessage(evt) {
 					title : "ID: "+ id + " Type: "+ type 
 				});
 				// marker.showInfoWindow();
-				if (notification != "" && notification!= null){
-					var infowindow = new google.maps.InfoWindow({
+				if (message != "" && message!= null){
+					/*var infowindow = new google.maps.InfoWindow({
 					    content: notification
-					  });
-					infowindow.open(map, marker);
-					newEventMessage(icon, id, notification);
+					  });*/
+					//infowindow.open(map, marker);
+					newEventMessage(getVehicleIcon(type), id, message)
 				}
 
 				var v = {
@@ -151,6 +151,7 @@ function onMessage(evt) {
 				vehicle.push(v);
 			}
 		}
+		}
 	}
 }
 
@@ -161,29 +162,79 @@ function doSend() {
 		websocket.send(message);
 }
 
-function newEventMessage(icon, id, message){
-	var txt = document.createTextNode(message);
-	var messageNode = document.createElement('div');
-	messageNode.setAttribute('class', 'message');
-	
-	var messagetype = document.createElement('div');
+function getVehicleIcon(type){
+	switch(type) {
+    case "car":
+    	return "pictures/car"+ carindex +".png"
+        carindex= (carindex+1)%10;
+        break;
+    case "rsu":
+    	return "pictures/rsu.png";
+        break;
+    case "trafficlight":
+    	return "pictures/trafficlight.png";
+    	break;
+    case "ambulance":
+    	return "pictures/ambulance.png";
+    	break;
+    default:
+    	return "pictures/default.png";
+	} 
+}
 
-	//var messagetypep.setAttribute('b', 'Type');
-	messageNode.appendChild(txt);
+function newEventMessage(icon, id, notification){
+	for(i in notification){
+		
+		var dst = notification[i].dst
+		var src = notification[i].src
+		var messagetype = notification[i].type
+		var description = notification[i].description
+		
+			
+		var object = document.createElement('div');
+		object.setAttribute('class', 'object');
+		
+		var messageNode = document.createElement('div');
+		messageNode.setAttribute('class', 'message');
+		
+		
+		messageNode.appendChild(buildMessage("Type: ", messagetype));
+		messageNode.appendChild(buildMessage("Source: ", src));
+		messageNode.appendChild(buildMessage("Destination: ", dst));
+		messageNode.appendChild(buildMessage("Description: ", ""));
+		
+		messageNode.appendChild(document.createTextNode(description));
+		
+		var imageNode = document.createElement("img");
+		imageNode.setAttribute('src', icon);
+		imageNode.setAttribute('alt', "ID: "+ id);
+		imageNode.setAttribute('title', "ID: "+ id);
+		imageNode.setAttribute('class', 'icon');
+		
+		var date = document.createElement('div');
+		date.setAttribute('class', 'date');
 	
-	var imageNode = document.createElement("img");
-	imageNode.setAttribute('src', icon);
-	imageNode.setAttribute('alt', "ID: "+ id);
-	imageNode.setAttribute('title', "ID: "+ id);
-	imageNode.setAttribute('class', 'icon');
+		var now = new Date();
+		date.appendChild(document.createTextNode(now.getFullYear()+"."+(now.getMonth()+1)+"."+now.getDate()+" "+now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()));
+		
+		object.appendChild(imageNode);
+		object.appendChild(messageNode);
+		object.appendChild(date);
+		document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
+	}
+}
+
+function buildMessage(name, content){
+	var title = document.createElement('div');
+	var b = document.createElement('b');
 	
-	var object = document.createElement('div');
-	object.setAttribute('class', 'object');
+	var txt = document.createTextNode(name);
+	b.appendChild(txt);
 	
-	object.appendChild(imageNode);
-	object.appendChild(messageNode);
+	title.appendChild(b);
+	title.appendChild(document.createTextNode(content));
 	
-	document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
+	return title;
 }
 
 function initialize() {
@@ -203,7 +254,7 @@ function initialize() {
 	    }
 	 }
 	else{
-		initialLocation= defaultlocation;//47.7104101, 17.6744103)
+		initialLocation= defaultlocation;// 47.7104101, 17.6744103)
 	}
 	var mapProp = {
 		center : initialLocation,// 47.475230,
@@ -222,7 +273,7 @@ function initialize() {
 	var infowindow = new google.maps.InfoWindow({
 	    content: "This is an info window"
 	  });
-
+	
 	
 	var marker = new google.maps.Marker({
 		position : defaultlocation,
@@ -232,7 +283,6 @@ function initialize() {
 	})
 	infowindow.open(map, marker);
 	
-	newEventMessage(icon, 22564, "This message comes from JS function");
 	
 	var init = {
 		"type" : "initBrowser"
@@ -241,6 +291,7 @@ function initialize() {
 	message = JSON.stringify(init);
 	doSend();
 }
+
 // window.addEventListener("load", initialize, false);
 // Oldal betöltésekor meghívja az initialize függvényt
 // google.maps.event.addDomListener(window, 'load', initialize);
