@@ -35,13 +35,6 @@ function initWebSocket() {
 	};
 
 }
-function send_message() {
-	if (websocket == null) {
-		initWebSocket();
-	} else {
-		doSend();
-	}
-}
 
 function toRadian(degree){
 	return degree* Math.PI / 180;
@@ -52,6 +45,7 @@ function onMessage(evt) {
 	var readvehicle = data.vehicles;
 	var messagetype = data.type;
 	
+	//Átírni switchbe:
 
 	if (messagetype === "delete") {
 		var id = data.id;
