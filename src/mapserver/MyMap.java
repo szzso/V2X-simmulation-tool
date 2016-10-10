@@ -75,23 +75,23 @@ public class MyMap {
 		String mtype = input.getString("type");
 
 		
-
+		
 		switch (mtype) {
 		case "initBrowser":
-
 			browser.add(session);
 			System.out.println("New browser: " + browser.size());
 
 			JsonArrayBuilder builder = Json.createArrayBuilder();
 			for (int i = 0; i < vehicle.size(); i++) {
 				JsonObject js = factory.createObjectBuilder().add("id", vehicle.get(i).getId())
-						.add("type", vehicle.get(i).getType()).add("notification", vehicle.get(i).getNotification())
+						.add("type", vehicle.get(i).getType())
 						.add("lat", vehicle.get(i).getLat()).add("lng", vehicle.get(i).getLng()).build();
 				builder.add(js);
 			}
 			JsonArray vehiclearray = builder.build();
 
-			value = factory.createObjectBuilder().add("type", "sendData").add("vehicles", vehiclearray).build();
+			value = factory.createObjectBuilder().add("type", "newCoordinate").add("vehicles", vehiclearray).build();
+			System.out.println(value.toString());
 			return value.toString();
 
 		case "initDevice":
@@ -113,9 +113,9 @@ public class MyMap {
 
 					}
 
-					value = factory.createObjectBuilder().add("type", "sendData").add("vehicles", jsonarray).build();
-
-					SendtoBrowser(session, value.toString());
+					//value = factory.createObjectBuilder().add("type", "newCoordinate").add("vehicles", jsonarray).build();
+					System.out.println(input.toString());
+					SendtoBrowser(session, input.toString());
 					} catch (NullPointerException e) {
 						System.out.println("Missing required json key");
 

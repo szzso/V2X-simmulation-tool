@@ -45,106 +45,131 @@ function onMessage(evt) {
 	var readvehicle = data.vehicles;
 	var messagetype = data.type;
 	
-	//Átírni switchbe:
-
-	if (messagetype === "delete") {
-		var id = data.id;
-		var index = -1;
-		for (var j = 0; j < vehicle.length; j++) {
-			if (id == vehicle[j].id) {
-				index = j;
-				// Remove the marker from Map
-				vehicle[j].map.setMap(null);
+	
+	switch(messagetype) {
+	    case "delete":
+	    	console.log("message : "+ evt.data);
+			var id = data.id;
+			var index = -1;
+			for (var j = 0; j < vehicle.length; j++) {
+				if (id == vehicle[j].id) {
+					index = j;
+					// Remove the marker from Map
+					vehicle[j].map.setMap(null);
+				}
 			}
-		}
-		if (index != -1){
-			vehicle.splice(index, 1);
-			if(vehicle.length == 0){
-				firstdevice =true;
+			if (index != -1){
+				vehicle.splice(index, 1);
+				if(vehicle.length == 0){
+					firstdevice =true;
+				}
 			}
-		}
-	} else {
-		
-		if(messagetype == "newMessage"){
-			for ( var i in readvehicle) {
+	    	break;
+	    case "newMessage":
+	    	for ( var i in readvehicle) {
 				var jsonmessage = readvehicle[i].message;
-				console.log("message : "+ jsonmessage);
+				console.log("message : "+ evt.data);
 				var id = readvehicle[i].id;
 				var type = readvehicle[i].type;
 				if(id != null && id != "" && jsonmessage != null)
-					newEventMessage(getVehicleIcon(type), id, jsonmessage)
+					var found = false;
+					var icon =""; 
+					for (var j = 0; j < vehicle.length; j++) {
+						if (id == vehicle[j].id) {
+							icon = vehicle[j].icon;
+							vehicle[j].map.setPosition(myLatLng);
+							found = true;
+						}
+					}
+					console.log("icon : "+ icon);
+					if(found)
+						newEventMessage(icon, id, jsonmessage)
 			}
+	    	break;
+	    case "newCoordinate":
+	    	if(firstdevice && readvehicle.length >0){
+				
+				firstdevice = false;
+				var center = map.getCenter();
+			    var R = 6371e3; // metres
+			    // console.log("center : "+ center);
+			    var lat1 = toRadian(readvehicle[0].lat);
+			    var lat2 = toRadian(center.lat());
+			    var deltalat = toRadian(center.lat()-readvehicle[0].lat);
+			    var deltalon = toRadian(center.lng()-readvehicle[0].lng);
+			    var a = Math.sin(deltalat/2) * Math.sin(deltalat/2) +
+			            Math.cos(lat1) * Math.cos(lat2) *
+			            Math.sin(deltalon/2) * Math.sin(deltalon/2);
+			    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+			    var d = R * c;
+			    if(d>1500){
+			    	map.setCenter(new google.maps.LatLng(readvehicle[0].lat, readvehicle[0].lng));
+			    }
+			    
+			    
+			}
+			
+			for ( var i in readvehicle) {
+				var found = false;
+				var id = readvehicle[i].id;
+				var type = readvehicle[i].type;
+				var lat = readvehicle[i].lat;
+				var lng = readvehicle[i].lng;
+				var myLatLng = {
+					lat : lat,
+					lng : lng
+				};
+				var notification = readvehicle[i].notification;
+
+				for (var j = 0; j < vehicle.length; j++) {
+					if (id == vehicle[j].id) {
+						vehicle[j].map.setPosition(myLatLng);
+						found = true;
+					}
+				}
+				
+				if (!found) {
+					var icon= getVehicleIcon(type);
+					console.log("icon : "+ icon);
+					var marker = new google.maps.Marker({
+						position : myLatLng,
+						map : map,
+						icon : icon,
+						title : "ID: "+ id + " Type: "+ type 
+					});
+					// marker.showInfoWindow();
+					if (message != "" && message!= null){
+						/*var infowindow = new google.maps.InfoWindow({
+						    content: notification
+						  });*/
+						//infowindow.open(map, marker);
+						newEventMessage(icon, id, message)
+					}
+
+					var v = {
+						id : id,
+						type : type,
+						map : marker,
+						icon: icon
+					};
+					vehicle.push(v);
+				}
+			}
+	    	break;
+	}
+
+	if (messagetype === "delete") {
+		
+	} else {
+		
+		if(messagetype == "newMessage"){
+			
 		}
 	
 		else{
 			
 		
-		if(firstdevice && readvehicle.length >0){
-			
-			firstdevice = false;
-			var center = map.getCenter();
-		    var R = 6371e3; // metres
-		    // console.log("center : "+ center);
-		    var lat1 = toRadian(readvehicle[0].lat);
-		    var lat2 = toRadian(center.lat());
-		    var deltalat = toRadian(center.lat()-readvehicle[0].lat);
-		    var deltalon = toRadian(center.lng()-readvehicle[0].lng);
-		    var a = Math.sin(deltalat/2) * Math.sin(deltalat/2) +
-		            Math.cos(lat1) * Math.cos(lat2) *
-		            Math.sin(deltalon/2) * Math.sin(deltalon/2);
-		    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-		    var d = R * c;
-		    if(d>1500){
-		    	map.setCenter(new google.maps.LatLng(readvehicle[0].lat, readvehicle[0].lng));
-		    }
-		    
-		    
-		}
-		for ( var i in readvehicle) {
-			var found = false;
-			var id = readvehicle[i].id;
-			var type = readvehicle[i].type;
-			var lat = readvehicle[i].lat;
-			var lng = readvehicle[i].lng;
-			var myLatLng = {
-				lat : lat,
-				lng : lng
-			};
-			var notification = readvehicle[i].notification;
-
-			for (var j = 0; j < vehicle.length; j++) {
-				if (id == vehicle[j].id) {
-					vehicle[j].map.setPosition(myLatLng);
-					found = true;
-				}
-			}
-			if (!found) {
-				var icon= getVehicleIcon(type);
-
-				var marker = new google.maps.Marker({
-					position : myLatLng,
-					map : map,
-					icon : icon,
-					title : "ID: "+ id + " Type: "+ type 
-				});
-				// marker.showInfoWindow();
-				if (message != "" && message!= null){
-					/*var infowindow = new google.maps.InfoWindow({
-					    content: notification
-					  });*/
-					//infowindow.open(map, marker);
-					newEventMessage(getVehicleIcon(type), id, message)
-				}
-
-				var v = {
-					id : id,
-					type : type,
-					map : marker,
-					notification: notification
-				};
-				vehicle.push(v);
-			}
-		}
+		
 		}
 	}
 }
@@ -159,8 +184,9 @@ function doSend() {
 function getVehicleIcon(type){
 	switch(type) {
     case "car":
-    	return "pictures/car"+ carindex +".png"
-        carindex= (carindex+1)%10;
+    	var result = "pictures/car"+ carindex +".png";
+    	carindex= (carindex+1)%10;
+    	return result;
         break;
     case "rsu":
     	return "pictures/rsu.png";
