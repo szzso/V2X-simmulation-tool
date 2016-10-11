@@ -136,10 +136,10 @@ public class MyMap {
 								device.put(session, id);
 								System.out.println("initDevice:" + device.size());
 							}
-							else{
-								storeVehicle(jsonValue);
-							}
+							storeVehicle(jsonValue);
+							
 						}
+						SendtoBrowser(session, input.toString());
 
 						return "";
 					} catch (NullPointerException e) {
