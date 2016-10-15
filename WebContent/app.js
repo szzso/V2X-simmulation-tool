@@ -5,6 +5,7 @@ var message = "";
 var wsUrl = null;
 var websocket = null;
 var firstdevice;
+var followID;
 var defaultlocation = new google.maps.LatLng(47.473605, 19.052594);
 var carindex=0;
 Number.prototype.toRad = function () { return this * Math.PI / 180; }
@@ -45,7 +46,6 @@ function onMessage(evt) {
 	var readvehicle = data.vehicles;
 	var messagetype = data.type;
 	
-	
 	switch(messagetype) {
 	    case "delete":
 	    	console.log("message : "+ evt.data);
@@ -55,35 +55,41 @@ function onMessage(evt) {
 				if (id == vehicle[j].id) {
 					index = j;
 					// Remove the marker from Map
-					vehicle[j].map.setMap(null);
+					vehicle[j].marker.setMap(null);
 				}
 			}
 			if (index != -1){
 				vehicle.splice(index, 1);
-				if(vehicle.length == 0){
-					firstdevice =true;
-				}
 			}
+			if(vehicle.length == 0)
+				firstdevice =true;
 	    	break;
 	    case "newMessage":
 	    	for ( var i in readvehicle) {
 				var jsonmessage = readvehicle[i].message;
-				console.log("message : "+ evt.data);
+
 				var id = readvehicle[i].id;
 				var type = readvehicle[i].type;
 				if(id != null && id != "" && jsonmessage != null)
 					var found = false;
-					var icon =""; 
+					var icon =""; ;
+					var marker;
 					for (var j = 0; j < vehicle.length; j++) {
 						if (id == vehicle[j].id) {
 							icon = vehicle[j].icon;
-							vehicle[j].map.setPosition(myLatLng);
 							found = true;
+							marker = vehicle[j].marker;
+							
 						}
 					}
-					console.log("icon : "+ icon);
-					if(found)
-						newEventMessage(icon, id, jsonmessage)
+					if(!found){
+						storeNewDevice(type, id)
+					}
+					
+					newEventMessage(icon, id, jsonmessage, marker)
+
+					
+					
 			}
 	    	break;
 	    case "newCoordinate":
@@ -104,12 +110,11 @@ function onMessage(evt) {
 			    var d = R * c;
 			    if(d>1500){
 			    	map.setCenter(new google.maps.LatLng(readvehicle[0].lat, readvehicle[0].lng));
-			    }
-			    
-			    
+			    }   
 			}
-			
+	    	
 			for ( var i in readvehicle) {
+				
 				var found = false;
 				var id = readvehicle[i].id;
 				var type = readvehicle[i].type;
@@ -119,59 +124,50 @@ function onMessage(evt) {
 					lat : lat,
 					lng : lng
 				};
-				var notification = readvehicle[i].notification;
+				if(followID ==id){
+					map.setCenter(myLatLng);
+				}
 
 				for (var j = 0; j < vehicle.length; j++) {
 					if (id == vehicle[j].id) {
-						vehicle[j].map.setPosition(myLatLng);
+						vehicle[j].marker.setPosition(myLatLng);
 						found = true;
 					}
 				}
 				
 				if (!found) {
-					var icon= getVehicleIcon(type);
-					console.log("icon : "+ icon);
-					var marker = new google.maps.Marker({
-						position : myLatLng,
-						map : map,
-						icon : icon,
-						title : "ID: "+ id + " Type: "+ type 
-					});
-					// marker.showInfoWindow();
-					if (message != "" && message!= null){
-						/*var infowindow = new google.maps.InfoWindow({
-						    content: notification
-						  });*/
-						//infowindow.open(map, marker);
-						newEventMessage(icon, id, message)
-					}
-
-					var v = {
-						id : id,
-						type : type,
-						map : marker,
-						icon: icon
-					};
-					vehicle.push(v);
+					storeNewDevice(type, id);
 				}
 			}
 	    	break;
 	}
+}
 
-	if (messagetype === "delete") {
-		
-	} else {
-		
-		if(messagetype == "newMessage"){
-			
-		}
+function storeNewDevice(type, id){
+	var icon= getVehicleIcon(type);
+	console.log("icon : "+ icon);
+	var marker = new google.maps.Marker({
+		map:map,
+		icon : icon,
+		title : "ID: "+ id + " Type: "+ type 
+	});
+	marker.set("id", id);
+
+	marker.addListener('click', function() {
+		map.setZoom(15);
+        map.setCenter(marker.getPosition());
+        
+        followID = marker.get("id");
+    });
+
+	var v = {
+		id : id,
+		type : type,
+		marker : marker,
+		icon: icon
+	};
+	vehicle.push(v);
 	
-		else{
-			
-		
-		
-		}
-	}
 }
 
 function doSend() {
@@ -202,13 +198,14 @@ function getVehicleIcon(type){
 	} 
 }
 
-function newEventMessage(icon, id, notification){
+function newEventMessage(icon, id, notification, marker){
 	for(i in notification){
 		
-		var dst = notification[i].dst
-		var src = notification[i].src
-		var messagetype = notification[i].type
-		var description = notification[i].description
+		var dst = notification[i].dst;
+		var src = notification[i].src;
+		var messagetype = notification[i].type;
+		var description = notification[i].description;
+		var time = notification[i].time;
 		
 			
 		var object = document.createElement('div');
@@ -235,12 +232,26 @@ function newEventMessage(icon, id, notification){
 		date.setAttribute('class', 'date');
 	
 		var now = new Date();
-		date.appendChild(document.createTextNode(now.getFullYear()+"."+(now.getMonth()+1)+"."+now.getDate()+" "+now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()));
+		if(time === undefined || time === null)
+			time = now.getFullYear()+"."+(now.getMonth()+1)+"."+now.getDate()+" "+now.getHours()+":"+now.getMinutes()+":"+now.getSeconds();
+		date.appendChild(document.createTextNode(time));//now.getFullYear()+"."+(now.getMonth()+1)+"."+now.getDate()+" "+now.getHours()+":"+now.getMinutes()+":"+now.getSeconds()));
 		
 		object.appendChild(imageNode);
 		object.appendChild(messageNode);
 		object.appendChild(date);
 		document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
+	
+		
+		var info = document.createElement('div');
+		info.appendChild(buildMessage("Type: ", messagetype));
+		info.appendChild(document.createTextNode(description));
+		//Info window:
+		if(marker.infowindow != null)
+			marker.infowindow.close();
+		marker.infowindow = new google.maps.InfoWindow({
+		    content: info
+		});
+		marker.infowindow.open(map, marker);
 	}
 }
 
@@ -258,51 +269,47 @@ function buildMessage(name, content){
 }
 
 function initialize() {
-	// Egy új térkép létrehozása
 	wsUrl = getRootUri() + "/V2X-Map-WebSocket/map";
 	firstdevice = true;
-	
+	followID = -1;
+	initWebSocket();
 	var initialLocation;
+	//Get own location
 	if (navigator.geolocation) {
 	     navigator.geolocation.getCurrentPosition(function (position) {
 	         initialLocation = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
 	     });
 	     console.log("position: "+ initialLocation);
+	     //if the location data not valid use default
 	     if (initialLocation === undefined || initialLocation === null) {
 	    	 initialLocation= defaultlocation;
 	    	 console.log("Budapesti lesz mert: "+ initialLocation);
 	    }
 	 }
 	else{
-		initialLocation= defaultlocation;// 47.7104101, 17.6744103)
+		initialLocation= defaultlocation;
 	}
+	//new map
 	var mapProp = {
-		center : initialLocation,// 47.475230,
-		// 19.056072),
+		center : initialLocation,
 		zoom : 15,
 		mapTypeControl : false,
 		mapTypeId : google.maps.MapTypeId.ROADMAP
 	};
 	 
-	// Térkép elhelyezése a HTML kód googleMap id- vel rendelkező elemébe
+	//Put the map on the web site
 	map = new google.maps.Map(document.getElementById("googleMap"), mapProp);
 	
-	initWebSocket();
-	
-	var icon = "pictures/rsu.png";
-	var infowindow = new google.maps.InfoWindow({
-	    content: "This is an info window"
-	  });
-	
-	
-	var marker = new google.maps.Marker({
-		position : defaultlocation,
-		map : map,
-		icon : icon,
-		title : "This is the center!"
-	})
-	infowindow.open(map, marker);
-	
+	//New Event: center of the map will the click position
+	google.maps.event.addListener(map, "click", function (event) {
+	    var latitude = event.latLng.lat();
+	    var longitude = event.latLng.lng();
+
+	    map.setCenter(new google.maps.LatLng(latitude,longitude));
+	    //Do not follow the marker
+	    followID = -1;
+
+	});
 	
 	var init = {
 		"type" : "initBrowser"
@@ -311,7 +318,3 @@ function initialize() {
 	message = JSON.stringify(init);
 	doSend();
 }
-
-// window.addEventListener("load", initialize, false);
-// Oldal betöltésekor meghívja az initialize függvényt
-// google.maps.event.addDomListener(window, 'load', initialize);

@@ -1,26 +1,34 @@
 package mapserver;
 
-public class Vehicle {
+import java.io.File;
+
+public class Device {
 
 	private String type;
 	private double lat;
 	private double lng;
 	private int id;
-	private String notification;
+	private File logfile;
 
-	public Vehicle(int id, String type, double lat, double lng, String notification) {
+	public Device(int id, String type, double lat, double lng) {
 		this.type = type;
 		this.lat = lat;
 		this.lng = lng;
 		this.id = id;
-		this.notification = notification;
+	}
+	
+	public Device(int id){
+		this.id = id;
+		this.type = "";
+		this.lat = -1.0;
+		this.lng = -1.0;
 	}
 
-	public Vehicle getVehicle() {
+	public Device getVehicle() {
 		return this;
 	}
 
-	public void setVehicle(Vehicle v) {
+	public void setVehicle(Device v) {
 		type = v.type;
 		lat = v.lat;
 		lng = v.lng;
@@ -55,11 +63,11 @@ public class Vehicle {
 		this.id = id;
 	}
 	
-	public String getNotification(){
-		return this.notification;
+	public File getLogFile() {
+		return this.logfile;
 	}
-	
-	public void setNotification(String notification){
-		this.notification = notification;
+
+	public void setLogFile(File logfile) {
+		this.logfile = logfile;
 	}
 }

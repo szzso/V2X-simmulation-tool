@@ -1,10 +1,18 @@
 package mapserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -26,9 +34,40 @@ import javax.websocket.server.ServerEndpoint;
 public class MyMap {
 
 	private static List<Session> browser = new ArrayList<Session>();
-	private static Map<Session, Integer> device = new HashMap<Session, Integer>();
+	private static Map<Session, Device> devices = new HashMap<Session, Device>();
 
-	private static List<Vehicle> vehicle = new ArrayList<Vehicle>();
+	//private static List<Device> vehicle = new ArrayList<Device>();
+	private static String logpath = "";
+
+	private void setLogPath() {
+		logpath = System.getProperty("user.dir").concat("/log/");
+		DateFormat df = new SimpleDateFormat("yyyy.MM.dd-HH:mm:ss");
+		Date dateobj = new Date();
+		String path = df.format(dateobj).toString();
+		createDirectory(path, "Creating log directory: ");
+		logpath = logpath.concat(path.concat("/"));
+	}
+
+	private void createDirectory(String path, String message) {
+
+		File dir = new File(logpath.concat(path));
+
+		// if the directory does not exist, create it
+		if (!dir.exists()) {
+			System.out.println(message + logpath.concat(path));
+			boolean result = false;
+
+			try {
+				dir.mkdirs();
+				result = true;
+			} catch (SecurityException se) {
+				System.out.println("No permission to create file!");
+			}
+			if (result) {
+				System.out.println("DIR created");
+			}
+		}
+	}
 
 	@OnOpen
 	public void open(Session session) {
@@ -39,28 +78,22 @@ public class MyMap {
 		System.out.println("WebSocket closed: " + session.getId());
 		if (browser.contains(session)) {
 			browser.remove(session);
-		} else if (device.containsKey(session)) {
-			int id = device.get(session);
-			for (int i = 0; i < vehicle.size(); i++) {
-				if (vehicle.get(i).getId() == id) {
-					vehicle.remove(i);
-					Map<String, ?> config = null;
-					JsonBuilderFactory factory = Json.createBuilderFactory(config);
-					JsonObject value = factory.createObjectBuilder().add("type", "delete").add("id", id).build();
+		} else if (devices.containsKey(session)) {
+			Device actdevice = devices.get(session);
 
-					SendtoBrowser(session, value.toString());
+			Map<String, ?> config = null;
+			JsonBuilderFactory factory = Json.createBuilderFactory(config);
+			JsonObject value = factory.createObjectBuilder().add("type", "delete").add("id", actdevice.getId()).build();
 
-					break;
-				}
-			}
-			device.remove(session);
+			SendtoBrowser(session, value.toString());
+			devices.remove(session);
 		}
-
 	}
 
 	@OnError
 	public void error(Throwable t) {
-		System.out.println("WebSocket error: " + t.getMessage());
+		//System.out.println("WebSocket error: " + t.getMessage());
+		t.printStackTrace();
 	}
 
 	@OnMessage
@@ -74,18 +107,18 @@ public class MyMap {
 		JsonObject value;
 		String mtype = input.getString("type");
 
-		
-		
 		switch (mtype) {
 		case "initBrowser":
 			browser.add(session);
 			System.out.println("New browser: " + browser.size());
-
 			JsonArrayBuilder builder = Json.createArrayBuilder();
-			for (int i = 0; i < vehicle.size(); i++) {
-				JsonObject js = factory.createObjectBuilder().add("id", vehicle.get(i).getId())
-						.add("type", vehicle.get(i).getType())
-						.add("lat", vehicle.get(i).getLat()).add("lng", vehicle.get(i).getLng()).build();
+			
+			for(Map.Entry<Session, Device> entry : devices.entrySet()) {
+			    Device actdevice = entry.getValue();
+
+			    JsonObject js = factory.createObjectBuilder().add("id", actdevice.getId())
+						.add("type", actdevice.getType()).add("lat", actdevice.getLat())
+						.add("lng", actdevice.getLng()).build();
 				builder.add(js);
 			}
 			JsonArray vehiclearray = builder.build();
@@ -97,100 +130,100 @@ public class MyMap {
 		case "initDevice":
 			try {
 				int id = input.getInt("id");
-				device.put(session, id);
-				System.out.println("New Device: " + device.size());
+				if(logpath =="")
+					setLogPath();
+	
+				devices.put(session, new Device(id));
+				System.out.println("New Device: " + devices.size());
 			} catch (NullPointerException e) {
 				System.out.println("Missing id from device initialization");
 			}
-			return "";
+			break;
 		case "newCoordinate":
-				if (device.containsKey(session)) {
-					try {
-					JsonArray jsonarray = input.getJsonArray("vehicles");
-					for (JsonValue jsonValue : jsonarray) {
-						
-						storeVehicle(jsonValue);
+			
+			JsonArray jsonarray = input.getJsonArray("vehicles");
 
-					}
-
-					//value = factory.createObjectBuilder().add("type", "newCoordinate").add("vehicles", jsonarray).build();
-					System.out.println(input.toString());
-					SendtoBrowser(session, input.toString());
-					} catch (NullPointerException e) {
-						System.out.println("Missing required json key");
-
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-					break;
+			try {
+				for (JsonValue jsonValue : jsonarray) {
+					storeVehicle(session, jsonValue);
 				}
-				else{
-					try {
-						JsonArray jsonarray = input.getJsonArray("vehicles");
-						for (JsonValue jsonValue : jsonarray) {
-							JsonObject jsonvehicle = (JsonObject) jsonValue;
+				SendtoBrowser(session, input.toString());
+				//System.out.println(input.toString());
+			} catch (NullPointerException e) {
+				System.out.println("Missing required json key");
 
-							int id = jsonvehicle.getInt("id");
-							if(!device.containsValue(id)){
-								device.put(session, id);
-								System.out.println("initDevice:" + device.size());
-							}
-							else{
-								storeVehicle(jsonValue);
-							}
-						}
-
-						return "";
-					} catch (NullPointerException e) {
-						System.out.println("Missing id from device initialization");
-					}
-					break;
-				}
-				
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			break;
 		case "newMessage":
 			System.out.println(input.toString());
 			SendtoBrowser(session, input.toString());
+			Device actdevice = devices.get(session);
+			List<String> msg = new ArrayList<>();
+			msg.add(input.toString());
+			
+			Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) +".txt" ));
+			if(Files.exists(path,LinkOption.NOFOLLOW_LINKS)){
+				try {
+					Files.write(path, msg, StandardOpenOption.APPEND);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			else{
+				try {
+					Files.write(path, msg, StandardOpenOption.CREATE);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			
 			break;
 		default:
+			System.out.println("Invalid message type!");
 			break;
 		}
 
 		return "";
 	}
-	
-	private void storeVehicle(JsonValue jsonValue){
+
+	private void storeVehicle(Session session, JsonValue jsonValue) {
 		String type = "";
 		Double lat = -1.0;
 		Double lng = -1.0;
-		String notification = "";
 		int id = -1;
-		
-		JsonObject jsonvehicle = (JsonObject) jsonValue;
+		try {
+			JsonObject jsonvehicle = (JsonObject) jsonValue;
 
-		id = jsonvehicle.getInt("id");
-		lat = jsonvehicle.getJsonNumber("lat").doubleValue();
-		lng = jsonvehicle.getJsonNumber("lng").doubleValue();
+			id = jsonvehicle.getInt("id");
+			lat = jsonvehicle.getJsonNumber("lat").doubleValue();
+			lng = jsonvehicle.getJsonNumber("lng").doubleValue();
 
-		if (jsonvehicle.containsKey("type"))
-			type = jsonvehicle.getString("type");
-		if (jsonvehicle.containsKey("notification"))
-			notification = jsonvehicle.getString("notification");
-		
-
-		boolean found = false;
-
-		for (int j = 0; j < vehicle.size(); j++) {
-			if (vehicle.get(j).getId() == id) {
-				vehicle.get(j).setCoordinate(lat, lng);
-				vehicle.get(j).setNotification(notification);
-				found = true;
+			if (jsonvehicle.containsKey("type")) {
+				type = jsonvehicle.getString("type");
 			}
-		}
 
-		if (!found) {
-			Vehicle v = new Vehicle(id, type, lat, lng, notification);
-			vehicle.add(v);
+			if (devices.containsKey(session)) {
+				if (lat >= 0 && lng >= 0)
+					devices.get(session).setCoordinate(lat, lng);
+				if (type != "")
+					devices.get(session).setType(type);
+			} else {
+				if (id != -1) {
+					if (type != "" && lat >= 0 && lng >= 0) {
+						devices.put(session, new Device(id, type, lat, lng));
+					} else {
+						devices.put(session, new Device(id));
+					}
+				}
+			}
+		} catch (NullPointerException e) {
+			System.out.println("Missing required json key");
 		}
 	}
 
