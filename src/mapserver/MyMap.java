@@ -158,7 +158,6 @@ public class MyMap {
 			}
 			break;
 		case "newMessage":
-			System.out.println(input.toString());
 			SendtoBrowser(session, input.toString());
 			Device actdevice = devices.get(session);
 			List<String> msg = new ArrayList<>();

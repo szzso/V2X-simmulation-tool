@@ -1,7 +1,9 @@
 var vehicle = new Array();
 var map;
 var message = "";
+var events= new Array();
 
+var uniquID = 1000;
 var wsUrl = null;
 var websocket = null;
 var firstdevice;
@@ -9,6 +11,23 @@ var followID;
 var defaultlocation = new google.maps.LatLng(47.473605, 19.052594);
 var carindex=0;
 Number.prototype.toRad = function () { return this * Math.PI / 180; }
+window.setInterval(deleteOldEvents, 5000);
+
+function deleteOldEvents(){
+	var now = new Date();
+	var i = 0;
+	while(i<events.length){
+		var diff = now-events[i].time;
+		if(diff > 30000){
+			var object= document.getElementById(events[i].id);
+			document.getElementById('noticication').removeChild(object); 
+			events.splice(i, 1);
+		}
+		else
+			i++;
+	}
+	
+}
 
 function getRootUri() {
 	return "ws://"
@@ -83,7 +102,10 @@ function onMessage(evt) {
 						}
 					}
 					if(!found){
-						storeNewDevice(type, id)
+						console.log("newmes: "+ evt.data);
+						console.log("type: "+ type);
+						icon = storeNewDevice(type, id);
+						console.log("icon: "+ type);
 					}
 					
 					newEventMessage(icon, id, jsonmessage, marker)
@@ -154,7 +176,7 @@ function storeNewDevice(type, id){
 	marker.set("id", id);
 
 	marker.addListener('click', function() {
-		map.setZoom(15);
+		map.setZoom(17);
         map.setCenter(marker.getPosition());
         
         followID = marker.get("id");
@@ -167,7 +189,7 @@ function storeNewDevice(type, id){
 		icon: icon
 	};
 	vehicle.push(v);
-	
+	return icon;
 }
 
 function doSend() {
@@ -239,8 +261,16 @@ function newEventMessage(icon, id, notification, marker){
 		object.appendChild(imageNode);
 		object.appendChild(messageNode);
 		object.appendChild(date);
+		object.setAttribute('id',uniquID);
 		document.getElementById('noticication').insertBefore(object,document.getElementById('noticication').firstChild);
 	
+		var e = {
+				time : now,
+				id: uniquID
+			};
+		uniquID++;
+		events.push(e);
+		
 		
 		var info = document.createElement('div');
 		info.appendChild(buildMessage("Type: ", messagetype));
@@ -292,7 +322,7 @@ function initialize() {
 	//new map
 	var mapProp = {
 		center : initialLocation,
-		zoom : 15,
+		zoom : 17,
 		mapTypeControl : false,
 		mapTypeId : google.maps.MapTypeId.ROADMAP
 	};
