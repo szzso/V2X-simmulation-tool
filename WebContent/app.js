@@ -223,7 +223,9 @@ function getVehicleIcon(type){
 function newEventMessage(icon, id, notification, marker){
 	for(i in notification){
 		
-		var dst = notification[i].dst;
+		var dst= notification[i].dst;
+		if(dst== -1)
+			dst= "GeoBroadcast";
 		var src = notification[i].src;
 		var messagetype = notification[i].type;
 		var description = notification[i].description;

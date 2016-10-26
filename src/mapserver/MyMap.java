@@ -36,8 +36,10 @@ public class MyMap {
 	private static List<Session> browser = new ArrayList<Session>();
 	private static Map<Session, Device> devices = new HashMap<Session, Device>();
 
-	//private static List<Device> vehicle = new ArrayList<Device>();
+	// private static List<Device> vehicle = new ArrayList<Device>();
 	private static String logpath = "";
+
+	private static Double speed = 0.0;
 
 	private void setLogPath() {
 		logpath = System.getProperty("user.dir").concat("/log/");
@@ -92,7 +94,7 @@ public class MyMap {
 
 	@OnError
 	public void error(Throwable t) {
-		//System.out.println("WebSocket error: " + t.getMessage());
+		// System.out.println("WebSocket error: " + t.getMessage());
 		t.printStackTrace();
 	}
 
@@ -112,13 +114,13 @@ public class MyMap {
 			browser.add(session);
 			System.out.println("New browser: " + browser.size());
 			JsonArrayBuilder builder = Json.createArrayBuilder();
-			
-			for(Map.Entry<Session, Device> entry : devices.entrySet()) {
-			    Device actdevice = entry.getValue();
 
-			    JsonObject js = factory.createObjectBuilder().add("id", actdevice.getId())
-						.add("type", actdevice.getType()).add("lat", actdevice.getLat())
-						.add("lng", actdevice.getLng()).build();
+			for (Map.Entry<Session, Device> entry : devices.entrySet()) {
+				Device actdevice = entry.getValue();
+
+				JsonObject js = factory.createObjectBuilder().add("id", actdevice.getId())
+						.add("type", actdevice.getType()).add("lat", actdevice.getLat()).add("lng", actdevice.getLng())
+						.build();
 				builder.add(js);
 			}
 			JsonArray vehiclearray = builder.build();
@@ -130,9 +132,9 @@ public class MyMap {
 		case "initDevice":
 			try {
 				int id = input.getInt("id");
-				if(logpath =="")
+				if (logpath == "")
 					setLogPath();
-	
+
 				devices.put(session, new Device(id));
 				System.out.println("New Device: " + devices.size());
 			} catch (NullPointerException e) {
@@ -140,7 +142,7 @@ public class MyMap {
 			}
 			break;
 		case "newCoordinate":
-			
+
 			JsonArray jsonarray = input.getJsonArray("vehicles");
 
 			try {
@@ -148,7 +150,7 @@ public class MyMap {
 					storeVehicle(session, jsonValue);
 				}
 				SendtoBrowser(session, input.toString());
-				//System.out.println(input.toString());
+				// System.out.println(input.toString());
 			} catch (NullPointerException e) {
 				System.out.println("Missing required json key");
 
@@ -162,17 +164,59 @@ public class MyMap {
 			Device actdevice = devices.get(session);
 			List<String> msg = new ArrayList<>();
 			msg.add(input.toString());
-			
-			Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) +".txt" ));
-			if(Files.exists(path,LinkOption.NOFOLLOW_LINKS)){
+
+			/*JsonArray myjsonarray = input.getJsonArray("vehicles");
+			for (JsonValue jsonValue : myjsonarray) {
+				JsonObject jsonvehicle = (JsonObject) jsonValue;
+				JsonArray mymsg = jsonvehicle.getJsonArray("message");
+
+				for (JsonValue onemsg : mymsg) {
+
+					JsonObject readmesg = (JsonObject) onemsg;
+
+					if (readmesg.getString("type").equals("CAM")) {
+
+						if (readmesg.containsKey("speed"))
+							if (readmesg.getJsonNumber("speed").doubleValue() > 0)
+								speed = readmesg.getJsonNumber("speed").doubleValue();
+							else {
+
+								Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) + "_CAM.csv"));
+
+								String output = readmesg.getInt("dst") + ";" + readmesg.getString("time") + ";"
+										+ speed.toString();
+								System.out.println(output);
+								List<String> msg2 = new ArrayList<>();
+								msg2.add(output);
+								if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
+									try {
+										Files.write(path, msg2, StandardOpenOption.APPEND);
+									} catch (IOException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+								} else {
+									try {
+										Files.write(path, msg2, StandardOpenOption.CREATE);
+									} catch (IOException e) {
+										// TODO Auto-generated catch block
+										e.printStackTrace();
+									}
+								}
+							}
+					}
+				}
+			}*/
+
+			Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) + ".txt"));
+			if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
 				try {
 					Files.write(path, msg, StandardOpenOption.APPEND);
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-			}
-			else{
+			} else {
 				try {
 					Files.write(path, msg, StandardOpenOption.CREATE);
 				} catch (IOException e) {
@@ -180,8 +224,7 @@ public class MyMap {
 					e.printStackTrace();
 				}
 			}
-			
-			
+
 			break;
 		default:
 			System.out.println("Invalid message type!");
