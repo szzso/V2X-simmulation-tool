@@ -36,7 +36,6 @@ public class MyMap {
 	private static List<Session> browser = new ArrayList<Session>();
 	private static Map<Session, Device> devices = new HashMap<Session, Device>();
 
-	// private static List<Device> vehicle = new ArrayList<Device>();
 	private static String logpath = "";
 
 	private static Double speed = 0.0;
@@ -77,6 +76,7 @@ public class MyMap {
 
 	@OnClose
 	public void close(Session session) {
+		// Close the websocket session
 		System.out.println("WebSocket closed: " + session.getId());
 		if (browser.contains(session)) {
 			browser.remove(session);
@@ -94,12 +94,12 @@ public class MyMap {
 
 	@OnError
 	public void error(Throwable t) {
-		// System.out.println("WebSocket error: " + t.getMessage());
-		t.printStackTrace();
+		System.out.println("WebSocket error: " + t.getMessage());
 	}
 
 	@OnMessage
 	public String open(Session session, String message) {
+		// Message in websocket
 		JsonReader jsonReader = Json.createReader(new StringReader(message));
 		JsonObject input = jsonReader.readObject();
 
@@ -111,10 +111,12 @@ public class MyMap {
 
 		switch (mtype) {
 		case "initBrowser":
+			// New browser
 			browser.add(session);
 			System.out.println("New browser: " + browser.size());
 			JsonArrayBuilder builder = Json.createArrayBuilder();
 
+			// Send joined the vehicles in JSON
 			for (Map.Entry<Session, Device> entry : devices.entrySet()) {
 				Device actdevice = entry.getValue();
 
@@ -130,8 +132,10 @@ public class MyMap {
 			return value.toString();
 
 		case "initDevice":
+			// new OBU/RSU join
 			try {
 				int id = input.getInt("id");
+				// init log path
 				if (logpath == "")
 					setLogPath();
 
@@ -142,7 +146,7 @@ public class MyMap {
 			}
 			break;
 		case "newCoordinate":
-
+			// new coordinate arrived
 			JsonArray jsonarray = input.getJsonArray("vehicles");
 
 			try {
@@ -160,54 +164,13 @@ public class MyMap {
 			}
 			break;
 		case "newMessage":
+			// new event message from OBU/RSU
 			SendtoBrowser(session, input.toString());
 			Device actdevice = devices.get(session);
 			List<String> msg = new ArrayList<>();
 			msg.add(input.toString());
 
-			/*JsonArray myjsonarray = input.getJsonArray("vehicles");
-			for (JsonValue jsonValue : myjsonarray) {
-				JsonObject jsonvehicle = (JsonObject) jsonValue;
-				JsonArray mymsg = jsonvehicle.getJsonArray("message");
-
-				for (JsonValue onemsg : mymsg) {
-
-					JsonObject readmesg = (JsonObject) onemsg;
-
-					if (readmesg.getString("type").equals("CAM")) {
-
-						if (readmesg.containsKey("speed"))
-							if (readmesg.getJsonNumber("speed").doubleValue() > 0)
-								speed = readmesg.getJsonNumber("speed").doubleValue();
-							else {
-
-								Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) + "_CAM.csv"));
-
-								String output = readmesg.getInt("dst") + ";" + readmesg.getString("time") + ";"
-										+ speed.toString();
-								System.out.println(output);
-								List<String> msg2 = new ArrayList<>();
-								msg2.add(output);
-								if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
-									try {
-										Files.write(path, msg2, StandardOpenOption.APPEND);
-									} catch (IOException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-								} else {
-									try {
-										Files.write(path, msg2, StandardOpenOption.CREATE);
-									} catch (IOException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-								}
-							}
-					}
-				}
-			}*/
-
+			// Save it to their own file, the file name is the station is
 			Path path = Paths.get(logpath.concat(Integer.toString(actdevice.getId()) + ".txt"));
 			if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
 				try {
@@ -234,6 +197,14 @@ public class MyMap {
 		return "";
 	}
 
+	/**
+	 * Save the vehile's data
+	 * 
+	 * @param session
+	 *            The incomming session
+	 * @param jsonValue
+	 *            The vehicle JSON array
+	 */
 	private void storeVehicle(Session session, JsonValue jsonValue) {
 		String type = "";
 		Double lat = -1.0;
@@ -250,12 +221,14 @@ public class MyMap {
 				type = jsonvehicle.getString("type");
 			}
 
+			// if session exist in devices map
 			if (devices.containsKey(session)) {
 				if (lat >= 0 && lng >= 0)
 					devices.get(session).setCoordinate(lat, lng);
 				if (type != "")
 					devices.get(session).setType(type);
 			} else {
+				// save the new vehicle
 				if (id != -1) {
 					if (type != "" && lat >= 0 && lng >= 0) {
 						devices.put(session, new Device(id, type, lat, lng));
@@ -269,6 +242,14 @@ public class MyMap {
 		}
 	}
 
+	/**
+	 * Send message to browsers
+	 * 
+	 * @param session
+	 *            The incomming session
+	 * @param message
+	 *            The message, which we want to send
+	 */
 	private void SendtoBrowser(Session session, String message) {
 		for (Session s : browser) {
 			if (s != session && s.isOpen()) {
